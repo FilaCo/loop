@@ -5,7 +5,7 @@ public import loop.exceptions.*
 
 public macro Loop(input: Tokens): Tokens {
     checkBody(input)
-    quote(loop{ res => 
+    quote({ => 
         while(true) { $(input) } 
         throw UnreachableCodeException()
     }())
@@ -17,22 +17,23 @@ public macro Loop(label: Tokens, input: Tokens): Tokens {
         while(true) { $(input) } 
         throw UnreachableCodeException()
     }())
-    if (let Some(labelVar) <- (parseDecl(quote(func fn($(label)))) as FuncParam)) {
-        labelVar.dump()
-        let labelLit = Token(STRING_LITERAL, labelVar.identifier.value)
+    let tokLabelVar = quote(var $(label))
+    if (let Some(labelVar) <- (parseDecl(tokLabelVar) as VarDecl)) {
+        let labelIdent = labelVar.identifier
+        let labelIdentLit = Token(STRING_LITERAL, labelIdent.value)
         return quote({ => 
-        let $(label)
+        $(tokLabelVar) = unsafe { zeroValue() }
         while (true) {
             try {
                 $(returningLambda)
             } catch (breakLoop: BreakLoopException) {
-                if ($(labelLit) == breakLoop.label) {
-                    $(label)
+                if ($(labelIdentLit) == breakLoop.label) {
+                    return $(labelIdent)
                 } else {
                     throw breakLoop
                 }
             } catch (continueLoop: ContinueLoopException) {
-                if ($(labelLit) == continueLoop.label) {
+                if ($(labelIdentLit) == continueLoop.label) {
                     continue
                 } else {
                     throw continueLoop
@@ -54,10 +55,10 @@ public macro Break(input: Tokens): Tokens {
 public macro Break(label: Tokens, input: Tokens): Tokens {
     assertParentContext("Loop")
     checkBreakExpr(input)
-    let labelLiteral = Token(STRING_LITERAL, label.toString()).toTokens()
+    let labelLit = Token(STRING_LITERAL, label.toString()).toTokens()
     quote({ => 
         $(label) = $(input)
-        throw BreakLoopException($(labelLiteral))
+        throw BreakLoopException($(labelLit))
     }())
 }
 
