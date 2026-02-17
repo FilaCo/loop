@@ -5,33 +5,34 @@ public import loop.exceptions.*
 
 public macro Loop(input: Tokens): Tokens {
     checkBody(input)
-    quote({ => 
+    quote(loop{ res => 
         while(true) { $(input) } 
         throw UnreachableCodeException()
     }())
 }
 
 public macro Loop(label: Tokens, input: Tokens): Tokens {
-    checkLabel(label)
     checkBody(input)
     let returningLambda = quote({ => 
         while(true) { $(input) } 
         throw UnreachableCodeException()
     }())
-    let labelLiteral = Token(STRING_LITERAL, label.toString()).toTokens()
-    quote({ => 
-        var $(label) = unsafe { zeroValue() }
+    if (let Some(labelVar) <- (parseDecl(quote(func fn($(label)))) as FuncParam)) {
+        labelVar.dump()
+        let labelLit = Token(STRING_LITERAL, labelVar.identifier.value)
+        return quote({ => 
+        let $(label)
         while (true) {
             try {
                 $(returningLambda)
             } catch (breakLoop: BreakLoopException) {
-                if ($(labelLiteral) == breakLoop.label) {
+                if ($(labelLit) == breakLoop.label) {
                     $(label)
                 } else {
                     throw breakLoop
                 }
             } catch (continueLoop: ContinueLoopException) {
-                if ($(labelLiteral) == continueLoop.label) {
+                if ($(labelLit) == continueLoop.label) {
                     continue
                 } else {
                     throw continueLoop
@@ -40,6 +41,8 @@ public macro Loop(label: Tokens, input: Tokens): Tokens {
         }
         throw UnreachableCodeException()
     }())
+    }
+    input
 }
 
 public macro Break(input: Tokens): Tokens {
@@ -50,7 +53,6 @@ public macro Break(input: Tokens): Tokens {
 
 public macro Break(label: Tokens, input: Tokens): Tokens {
     assertParentContext("Loop")
-    checkLabel(label)
     checkBreakExpr(input)
     let labelLiteral = Token(STRING_LITERAL, label.toString()).toTokens()
     quote({ => 
@@ -64,12 +66,8 @@ public macro Continue(label: Tokens): Tokens {
     if (label.size == 0) {
         return quote(continue)
     }
-    checkLabel(label)
+    // checkLabel(label)
     quote(throw ContinueLoopException($(label)))
-}
-
-func checkLabel(label: Tokens): Tokens {
-    label
 }
 
 func checkBody(body: Tokens): Tokens {
