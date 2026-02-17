@@ -56,10 +56,10 @@ public macro Break(label: Tokens, input: Tokens): Tokens {
     assertParentContext("Loop")
     checkBreakExpr(input)
     let labelLit = Token(STRING_LITERAL, label.toString()).toTokens()
-    quote({ => 
+    quote(
         $(label) = $(input)
         throw BreakLoopException($(labelLit))
-    }())
+    )
 }
 
 public macro Continue(label: Tokens): Tokens {
