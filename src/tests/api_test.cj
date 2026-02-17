@@ -22,4 +22,21 @@ class LoopTest {
         // assert
         @PowerAssert(10 == cnt)
     }
+
+    // @TestCase
+    // func returnValue() {
+    //     // arrange
+    //     var cnt = 0
+
+    //     // act
+    //     let actual = @Loop(
+    //         cnt += 1
+    //         if (cnt >= 10) {
+    //             @Break(cnt * 2)
+    //         }
+    //     )
+
+    //     // assert
+    //     @PowerAssert(20 == actual)
+    // }
 }
